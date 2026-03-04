@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>결하다 취향 설문</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f8f9fa;
+        }
+        .option-card.selected {
+            border-color: #6366f1;
+            background-color: #eef2ff;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div id="app" class="w-full max-w-md bg-white rounded-3xl shadow-xl overflow-hidden min-h-[600px] flex flex-col">
+        
+        <!-- 헤더 영역 -->
+        <div class="px-8 pt-8 pb-4">
+            <h1 class="text-2xl font-bold text-gray-800 text-center">결하다 취향 설문</h1>
+            <p class="text-sm text-gray-500 text-center mt-2">서로를 더 잘 알아가기 위한 질문입니다</p>
+            
+            <!-- 프로그레스 바 -->
+            <div id="progress-container" class="mt-6 h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                <div id="progress-bar" class="h-full bg-indigo-500 transition-all duration-300" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <!-- 질문 컨텐츠 영역 -->
+        <div id="survey-container" class="flex-grow px-8 py-4 overflow-y-auto">
+            <div id="question-box" class="space-y-6">
+                <!-- 질문과 옵션이 여기에 렌더링됩니다 -->
+            </div>
+        </div>
+
+        <!-- 하단 버튼 영역 -->
+        <div class="p-8 border-t border-gray-50 flex gap-3">
+            <button id="prev-btn" class="hidden flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl font-medium hover:bg-gray-200 transition-colors">
+                이전
+            </button>
+            <button id="next-btn" disabled class="flex-[2] py-4 bg-indigo-500 text-white rounded-2xl font-medium disabled:bg-gray-200 disabled:text-gray-400 hover:bg-indigo-600 transition-colors">
+                다음 단계
+            </button>
+        </div>
+    </div>
+
+    <!-- 결과 화면 -->
+    <div id="result-screen" class="hidden w-full max-w-md bg-white rounded-3xl shadow-xl p-8 max-h-[90vh] overflow-y-auto">
+        <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">나의 취향 리포트</h2>
+        <div id="result-list" class="space-y-4 mb-8">
+            <!-- 결과 리스트가 여기에 렌더링됩니다 -->
+        </div>
+        <button onclick="location.reload()" class="w-full py-4 bg-indigo-500 text-white rounded-2xl font-medium hover:bg-indigo-600 transition-colors">
+            다시 응답하기
+        </button>
+    </div>
+
+    <script>
+        const questions = [
+            {
+                text: "카페를 고른다면 어떤 곳이 끌려요?",
+                options: [
+                    "예쁜 케이크가 있는 감성 카페가 좋아요.",
+                    "젤라또나 빙수 같은 시원한 디저트를 찾게 돼요.",
+                    "갓 구운 빵 향이 나는 베이커리 카페를 좋아해요.",
+                    "조용한 곳에서 따뜻한 차 한잔이면 충분해요."
+                ]
+            },
+            {
+                text: "영화를 본다면 어떤 장르를 고르세요?",
+                options: [
+                    "두근두근 로맨틱 코미디를 즐겨요.",
+                    "손에 땀 쥐는 스릴러나 액션을 좋아해요.",
+                    "결말이 궁금한 미스터리나 심리물에 끌려요.",
+                    "가볍게 웃을 수 있는 코미디나 애니메이션이 좋아요."
+                ]
+            },
+            {
+                text: "대화할 때 어떤 주제가 제일 편해요?",
+                options: [
+                    "요즘 뜨는 영상이나 재밌는 이슈 얘기를 좋아해요.",
+                    "나만 아는 소소한 취미 이야기를 꺼내게 돼요.",
+                    "서로의 가치관이나 꿈에 대해 깊이 얘기하고 싶어요.",
+                    "어릴 때 추억이나 웃긴 에피소드를 나누는 게 즐거워요."
+                ]
+            },
+            {
+                text: "데이트할 때 사진은 어떻게 찍어요?",
+                options: [
+                    "이 순간을 남기고 싶어서 열심히 찍게 돼요.",
+                    "상대가 찍어주면 부끄럽지만 잘 따라요.",
+                    "사람보다 풍경이나 음식 사진을 더 좋아해요.",
+                    "사진보다는 눈에 담으면서 대화를 즐기고 싶어요."
+                ]
+            },
+            {
+                text: "내 유튜브 알고리즘은 어떤 영상으로 가득해요?",
+                options: [
+                    "보다 보면 빠져드는 예능이나 숏폼이 많아요.",
+                    "요리, 운동, 재테크 같은 실용적인 영상이 가득해요.",
+                    "음악이나 브이로그 같은 잔잔한 영상이 많아요.",
+                    "게임이나 스포츠 같은 내 취미 영상으로 채워져 있어요."
+                ]
+            },
+            {
+                text: "나를 동물에 비유하면 뭐가 가까울까요?",
+                options: [
+                    "반가우면 꼬리 흔드는 다정한 강아지요.",
+                    "혼자만의 시간이 소중한 도도한 고양이요.",
+                    "이리저리 바쁘게 돌아다니는 햄스터요.",
+                    "여유롭게 쉬는 걸 좋아하는 나무늘보요."
+                ]
+            },
+            {
+                text: "평소 옷 스타일은 어때요?",
+                options: [
+                    "깔끔한 셔츠나 슬랙스 같은 댄디한 느낌을 좋아해요.",
+                    "편하게 입을 수 있는 캐주얼이 제일 좋아요.",
+                    "남들과 다른 나만의 스타일을 찾아다녀요.",
+                    "무난하고 단정하게 맞춰 입는 걸 선호해요."
+                ]
+            },
+            {
+                text: "가장 좋아하는 계절이 있어요?",
+                options: [
+                    "꽃 피는 설레는 봄이 제일 좋아요.",
+                    "시원한 바다가 생각나는 여름을 좋아해요.",
+                    "선선한 바람에 단풍 드는 가을이 좋아요.",
+                    "하얀 눈이 내리는 포근한 겨울이 좋아요."
+                ]
+            },
+            {
+                text: "같이 해보고 싶은 원데이 클래스가 있어요?",
+                options: [
+                    "향수나 캔들을 만드는 감성 공방이 끌려요.",
+                    "가죽이나 도자기 같은 걸 손으로 직접 만들어 보고 싶어요.",
+                    "함께 만들어 나눠 먹는 요리 클래스가 재밌을 것 같아요.",
+                    "댄스나 테니스처럼 몸을 움직이는 게 좋아요."
+                ]
+            }
+        ];
+
+        let currentStep = 0;
+        const userAnswers = new Array(questions.length).fill(null);
+
+        const questionBox = document.getElementById('question-box');
+        const progressBar = document.getElementById('progress-bar');
+        const nextBtn = document.getElementById('next-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const appContainer = document.getElementById('app');
+        const resultScreen = document.getElementById('result-screen');
+        const resultList = document.getElementById('result-list');
+
+        function renderQuestion() {
+            const q = questions[currentStep];
+            questionBox.innerHTML = `
+                <div class="space-y-2">
+                    <span class="text-indigo-500 font-bold text-sm">질문 ${currentStep + 1} / ${questions.length}</span>
+                    <h2 class="text-xl font-semibold text-gray-800 leading-snug">${q.text}</h2>
+                </div>
+                <div class="space-y-3 mt-6">
+                    ${q.options.map((option, idx) => `
+                        <button onclick="selectOption(${idx})" class="option-card w-full p-4 text-left border-2 border-gray-100 rounded-2xl hover:border-indigo-200 transition-all duration-200 focus:outline-none ${userAnswers[currentStep] === idx ? 'selected' : ''}">
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 rounded-full border-2 border-gray-200 flex items-center justify-center mr-3 ${userAnswers[currentStep] === idx ? 'bg-indigo-500 border-indigo-500' : ''}">
+                                    ${userAnswers[currentStep] === idx ? '<svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>' : ''}
+                                </div>
+                                <span class="text-gray-700 font-medium">${option}</span>
+                            </div>
+                        </button>
+                    `).join('')}
+                </div>
+            `;
+
+            const progress = ((currentStep + 1) / questions.length) * 100;
+            progressBar.style.width = `${progress}%`;
+
+            prevBtn.classList.toggle('hidden', currentStep === 0);
+            nextBtn.innerText = currentStep === questions.length - 1 ? '결과 보기' : '다음 단계';
+            updateNextButtonState();
+        }
+
+        window.selectOption = function(index) {
+            userAnswers[currentStep] = index;
+            renderQuestion();
+        };
+
+        function updateNextButtonState() {
+            nextBtn.disabled = userAnswers[currentStep] === null;
+        }
+
+        nextBtn.addEventListener('click', () => {
+            if (currentStep < questions.length - 1) {
+                currentStep++;
+                renderQuestion();
+            } else {
+                showResults();
+            }
+        });
+
+        prevBtn.addEventListener('click', () => {
+            if (currentStep > 0) {
+                currentStep--;
+                renderQuestion();
+            }
+        });
+
+        function showResults() {
+            appContainer.classList.add('hidden');
+            resultScreen.classList.remove('hidden');
+            
+            resultList.innerHTML = questions.map((q, idx) => `
+                <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <p class="text-xs text-indigo-500 font-bold mb-1">질문 ${idx + 1}</p>
+                    <p class="text-sm text-gray-800 font-semibold mb-2">${q.text}</p>
+                    <p class="text-sm text-indigo-600 font-medium bg-white p-2 px-3 rounded-lg border border-indigo-50">
+                        ${q.options[userAnswers[idx]]}
+                    </p>
+                </div>
+            `).join('');
+        }
+
+        renderQuestion();
+    </script>
+</body>
+</html>
